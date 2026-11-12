@@ -4,6 +4,7 @@ const express = require('express');
 const { Server } = require('socket.io');
 const { chooseWinners } = require('./game-rules');
 
+// Shared game settings. Every room uses the same tile grid and movement rules.
 const PORT = Number(process.env.PORT) || 3000;
 const TILE = 32;
 const COLS = 20;
@@ -21,6 +22,7 @@ const SPAWNS = [
 ];
 
 function makeMap() {
+  // Build a 20-by-15 tile grid, then mirror the cover so each spawn has similar protection.
   const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
   const set = (x, y, kind) => { grid[y][x] = { id: `${x}:${y}`, x, y, kind }; };
   const mirrored = (x, y, kind) => {
@@ -46,6 +48,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 
 const rooms = new Map();
 const sockets = new Map();
+// Clean nicknames before storing or broadcasting them; keep the limit small for tank labels.
 const cleanName = value => String(value || '').trim().replace(/[<>\u0000-\u001f]/g, '').slice(0, 16);
 const validName = name => name.length >= 2;
 const roomCode = () => {
@@ -54,6 +57,7 @@ const roomCode = () => {
   return code;
 };
 const alivePlayers = room => [...room.players.values()].filter(p => p.lives > 0 && !p.left);
+// Only send fields the browser needs. Positions and scores still come from this server.
 const publicPlayers = room => [...room.players.values()].map(p => ({
   id: p.id, name: p.name, color: p.color, ready: p.ready, host: p.id === room.hostId,
   isBot: Boolean(p.isBot),
@@ -68,6 +72,7 @@ function broadcastLobby(room) { emitRoom(room, 'room:update', lobbyState(room));
 function notice(room, message, type = 'info') { emitRoom(room, 'notice', { message, type, at: Date.now() }); }
 
 function createRoom(socket, name, solo = false) {
+  // A room owns its map, roster, bullets, timer, and match phase.
   const code = roomCode();
   const room = {
     code, hostId: socket.id, phase: 'lobby', players: new Map(), map: makeMap(), bullets: [],
@@ -82,6 +87,7 @@ function createRoom(socket, name, solo = false) {
   return room;
 }
 function addPlayer(socket, room, name, announce = true) {
+  // Human players begin in a lobby; solo mode adds CPU players separately.
   const p = {
     id: socket.id, name, color: COLORS.find(color => ![...room.players.values()].some(existing => existing.color === color)) || COLORS[0], ready: room.players.size === 0,
     isBot: false,
@@ -98,6 +104,7 @@ function addPlayer(socket, room, name, announce = true) {
   }
 }
 function addBot(room, index) {
+  // CPU pilots use the same tank, lives, and score fields as human players.
   room.players.set(`cpu-${room.code}-${index}`, {
     id: `cpu-${room.code}-${index}`, name: `CPU ${index}`, color: COLORS[index], ready: true, isBot: true, botIndex: index,
     x: 0, y: 0, dir: 'up', lives: 3, kills: 0, left: false,
@@ -109,6 +116,7 @@ function score(room) {
   return [...room.players.values()].map(p => ({ id: p.id, name: p.name, color: p.color, kills: p.kills, lives: p.lives, eliminated: p.lives <= 0 || p.left }));
 }
 function endRound(room, reason) {
+  // Stop the simulation once, calculate the result on the server, and notify the whole room.
   if (room.phase !== 'game') return;
   room.phase = 'over'; room.paused = false; room.remainingMs = Math.max(0, room.remainingMs);
   if (room.tickId) clearInterval(room.tickId);
@@ -117,6 +125,7 @@ function endRound(room, reason) {
   broadcastLobby(room);
 }
 function solidAt(room, x, y) {
+  // A tank occupies a 24px square, so check every tile its corners overlap.
   const left = Math.floor(x / TILE), right = Math.floor((x + 24 - 0.001) / TILE);
   const top = Math.floor(y / TILE), bottom = Math.floor((y + 24 - 0.001) / TILE);
   if (left < 0 || top < 0 || right >= COLS || bottom >= ROWS) return true;
@@ -130,10 +139,12 @@ function overlaps(a, b, ax = a.x, ay = a.y) {
   return ax < b.x + 24 && ax + 24 > b.x && ay < b.y + 24 && ay + 24 > b.y;
 }
 function canOccupy(room, p, x, y) {
+  // Share one check for map walls, arena edges, and collisions with other living tanks.
   if (solidAt(room, x, y)) return false;
   return alivePlayers(room).every(other => other.id === p.id || other.respawnAt || !overlaps({ x, y }, other, x, y));
 }
 function movePlayer(room, p, dt) {
+  // Split movement into short steps so a fast tank cannot pass through a thin wall.
   const dirs = p.input;
   let dx = (dirs.right ? 1 : 0) - (dirs.left ? 1 : 0);
   let dy = (dirs.down ? 1 : 0) - (dirs.up ? 1 : 0);
@@ -152,6 +163,7 @@ function movePlayer(room, p, dt) {
   }
 }
 function updateBotInput(room, bot, now) {
+  // Solo bots chase the nearest living human. A grid search gives them a route around walls.
   const targets = alivePlayers(room).filter(player => !player.isBot && !player.respawnAt);
   if (!targets.length) {
     bot.input = { up: false, down: false, left: false, right: false, shoot: false };
@@ -173,6 +185,7 @@ function updateBotInput(room, bot, now) {
 
   const start = { x: Math.floor((bot.x + 12) / TILE), y: Math.floor((bot.y + 12) / TILE) };
   const goal = { x: Math.floor((target.x + 12) / TILE), y: Math.floor((target.y + 12) / TILE) };
+  // Breadth-first search checks the four neighboring cells and records each cell's predecessor.
   const directions = [
     { name: 'up', x: 0, y: -1 }, { name: 'right', x: 1, y: 0 },
     { name: 'down', x: 0, y: 1 }, { name: 'left', x: -1, y: 0 }
@@ -211,6 +224,7 @@ function updateBotInput(room, bot, now) {
   bot.nextThinkAt = now + 600 + bot.botIndex * 100;
 }
 function shoot(room, p, now) {
+  // The server creates bullets from the tank's facing direction and enforces the fire cooldown.
   if (!p.input.shoot || now < p.fireAt || p.lives <= 0) return;
   p.fireAt = now + (p.isBot ? 1400 + p.botIndex * 250 : FIRE_MS);
   const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -219,6 +233,7 @@ function shoot(room, p, now) {
   emitRoom(room, 'sound', { type: 'shoot' });
 }
 function updateBullets(room, dt, now) {
+  // Move each bullet in small increments so thin walls and tanks cannot be skipped between ticks.
   const next = [];
   for (const b of room.bullets) {
     let keep = true;
@@ -252,6 +267,7 @@ function updateBullets(room, dt, now) {
   room.bullets = next;
 }
 function resetForMatch(room) {
+  // Rebuild match state and place every roster member at a clean spawn before the timer starts.
   room.map = makeMap(); room.bullets = []; room.remainingMs = ROUND_MS; room.paused = false;
   room.lastTick = Date.now(); room._timerTick = room.lastTick;
   [...room.players.values()].forEach((p, i) => {
@@ -264,6 +280,7 @@ function resetForMatch(room) {
   room.tickId = setInterval(() => tick(room), TICK_MS);
 }
 function tick(room) {
+  // One authoritative 30 Hz update advances input, movement, bullets, scores, and the clock.
   if (room.phase !== 'game' || room.paused) { room.lastTick = Date.now(); return; }
   const now = Date.now();
   const dt = Math.min(0.06, (now - room.lastTick) / 1000);
@@ -291,6 +308,7 @@ function tick(room) {
   else if (room.remainingMs <= 0) endRound(room, 'time');
 }
 function removePlayer(socketId, action = 'disconnected') {
+  // Handle a quit and a lost connection through the same cleanup path.
   const code = sockets.get(socketId); if (!code) return;
   const room = rooms.get(code); const socket = io.sockets.sockets.get(socketId); const player = room?.players.get(socketId);
   if (!room || !player) { sockets.delete(socketId); return; }
@@ -321,6 +339,7 @@ function removePlayer(socketId, action = 'disconnected') {
 }
 
 io.on('connection', socket => {
+  // Socket events carry player intent. The server checks permissions and changes room state.
   socket.on('room:create', payload => {
     if (sockets.has(socket.id)) return socket.emit('error:message', 'You are already in a room.');
     const name = cleanName(payload?.name);

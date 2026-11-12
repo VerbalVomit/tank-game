@@ -34,6 +34,7 @@ tank-game/
 ├── game-rules.js         # Winner selection and time-limit tie-breaks
 ├── render.yaml           # Render web service, health check, and manual deploy gate
 ├── TEAM-PLAN.md          # Suggested division for Matis, Alex and Tanel
+├── REVIEW-DEFENSE.md     # Student review talking points and demo guide
 ├── public/
 │   ├── index.html        # Four screens and static interface structure
 │   ├── style.css         # Responsive layout, CSS tanks, walls and effects

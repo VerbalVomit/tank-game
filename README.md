@@ -1,4 +1,4 @@
-# Battle City — multiplayer tank arena
+# TANK GAME — multiplayer tank arena
 
 A small browser tank battle for 2–4 players. The server owns movement, bullets, collisions, lives, kills, pause state, and the three-minute timer. The client renders the arena with HTML elements and CSS; there is no Canvas, WebGL, game engine, database, or account system.
 
@@ -27,7 +27,7 @@ Run the automated local acceptance suite with `npm test`. It starts an isolated 
 ## Project files
 
 ```text
-battle-city/
+tank-game/
 ├── package.json
 ├── server.js             # Express, Socket.IO, room state and fixed-tick simulation
 ├── game-rules.js         # Winner selection and time-limit tie-breaks

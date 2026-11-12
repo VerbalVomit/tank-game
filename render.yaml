@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: battle-city
+    name: tank-game
     runtime: node
     plan: free
     region: frankfurt

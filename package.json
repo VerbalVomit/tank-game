@@ -1,5 +1,5 @@
 {
-  "name": "battle-city-dom",
+  "name": "tank-game",
   "version": "1.0.0",
   "private": true,
   "description": "A DOM-rendered multiplayer tank battle for the browser",

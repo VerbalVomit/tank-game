@@ -299,4 +299,4 @@ io.on('connection', socket => {
   socket.on('disconnect', () => removePlayer(socket.id, 'disconnected'));
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Battle City listening on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`TANK GAME server listening on port ${PORT}`));

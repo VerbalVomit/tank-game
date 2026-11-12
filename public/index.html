@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10130f">
+  <title>Battle City — Tank Arena</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/game.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Battle City home"><span class="brand-mark">▣</span><span>BATTLE CITY</span></a>
+      <div class="masthead-right"><span class="signal-dot"></span><span id="connection-label">Connecting</span><button class="sound-button" id="sound-toggle" type="button" aria-label="Mute sound" title="Toggle sound">♫ <span>Sound on</span></button></div>
+    </header>
+
+    <section class="screen active" id="home-screen" aria-labelledby="home-title">
+      <div class="hero-copy"><p class="eyebrow">ARCADE FIELD MANUAL · 01</p><h1 id="home-title">Hold the line.<br><em>Outlast them all.</em></h1><p class="intro">A four-player tank skirmish. Find a crew, take cover, and make every shot count.</p>
+        <div class="control-strip"><span><kbd>W A S D</kbd> Move</span><span><kbd>SPACE</kbd> Fire</span><span><kbd>ESC</kbd> Menu</span></div>
+      </div>
+      <div class="entry-panel">
+        <div class="panel-topline"><span>FIELD ENTRY</span><span class="serial">BC / 90</span></div>
+        <label for="nickname">Pilot callsign</label><input id="nickname" maxlength="16" autocomplete="nickname" placeholder="e.g. IronFox">
+        <button class="primary-button" id="create-room" type="button"><span>Create a room</span><span aria-hidden="true">↗</span></button>
+        <div class="divider"><span>OR JOIN A CREW</span></div>
+        <label for="room-code">Room code</label><div class="join-row"><input id="room-code" maxlength="4" placeholder="ABCD" autocapitalize="characters"><button class="join-button" id="join-room" type="button">Join ↗</button></div>
+        <p class="form-error" id="home-error" role="status"></p>
+      </div>
+      <div class="home-footer"><span>20 × 15 TILE ARENA</span><span>2—4 PILOTS</span><span>THREE LIVES EACH</span></div>
+    </section>
+
+    <section class="screen" id="lobby-screen" aria-labelledby="lobby-title">
+      <div class="lobby-heading"><div><p class="eyebrow">CREW ASSEMBLY</p><h1 id="lobby-title">The staging area</h1></div><div class="room-badge"><span>ROOM CODE</span><strong id="lobby-code">----</strong><button id="copy-link" type="button" title="Copy invite link">Copy invite</button></div></div>
+      <div class="lobby-layout"><div class="roster-panel"><div class="panel-topline"><span>ROSTER</span><span id="roster-count">0 / 4</span></div><div id="lobby-players" class="player-list"></div><p class="lobby-hint" id="lobby-hint">Waiting for another pilot to join.</p></div>
+        <aside class="briefing-panel"><p class="eyebrow">MISSION BRIEF</p><h2>One arena.<br>Last tank standing.</h2><ul><li>Three lives per pilot</li><li>Brick walls break under fire</li><li>Steel stops every round</li><li>180 seconds on the clock</li></ul><p class="host-note" id="host-note">The host starts when the crew is ready.</p><button class="primary-button" id="ready-button" type="button">I’m ready <span>✓</span></button><button class="start-button" id="start-game" type="button" disabled>Start match <span>→</span></button></aside>
+      </div>
+      <button class="text-button" id="leave-room" type="button">← Leave room</button>
+    </section>
+
+    <section class="screen game-screen" id="game-screen" aria-label="Battlefield">
+      <div class="game-top"><div class="game-title"><span class="brand-mark">▣</span><span>FIELD <b id="game-room-code">----</b></span></div><div class="timer-wrap"><span>TIME REMAINING</span><strong id="timer">03:00</strong></div><button class="menu-button" id="menu-open" type="button"><span>Ⅱ</span> MENU <kbd>ESC</kbd></button></div>
+      <div class="play-layout"><aside class="score-panel"><div class="panel-topline"><span>LIVE SCORE</span><span>◉</span></div><div id="score-list"></div><div class="score-key"><span class="life-icon">▰▰▰</span> lives <span>·</span> kills <b>×</b></div><div class="arena-note"><span class="signal-dot"></span> MATCH LIVE</div></aside>
+        <div class="arena-column"><div class="arena-frame"><div id="arena" class="arena" aria-label="Tank battle arena"></div><div class="pause-shade hidden" id="pause-shade"><div class="pause-card"><span class="eyebrow">FIELD PAUSED</span><h2 id="pause-copy">The crew is holding.</h2><button id="pause-resume" class="primary-button" type="button">Resume game <span>↗</span></button></div></div></div><div class="arena-caption"><span>SECTOR 04 · OLD DEPOT</span><span id="fps-label" class="hidden">FPS —</span><span>WASD / ARROWS TO MOVE</span></div></div>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="menu-overlay hidden" id="menu-overlay"><div class="menu-card"><button id="menu-close" class="close-button" type="button" aria-label="Close menu">×</button><p class="eyebrow">FIELD MENU</p><h2>Regroup.</h2><p id="menu-status">All pilots share the pause.</p><button class="primary-button" id="pause-toggle" type="button">Pause game <span>Ⅱ</span></button><button class="quit-button" id="quit-game" type="button">Quit match <span>↗</span></button></div></div>
+    </section>
+
+    <section class="screen gameover-screen" id="over-screen" aria-labelledby="over-title"><p class="eyebrow">ROUND REPORT</p><h1 id="over-title">Match complete</h1><p class="winner-line" id="winner-line"></p><div class="final-board" id="final-board"></div><button class="primary-button" id="return-lobby" type="button">Return to lobby <span>↗</span></button><p class="host-note" id="return-note"></p></section>
+    <footer class="site-footer"><span>STUDENT BUILD · DOM RENDERED</span><span>NO SPRITES. NO SHORTCUTS.</span></footer>
+  </main>
+</body>
+</html>

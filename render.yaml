@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: battle-city
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: "off"

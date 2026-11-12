@@ -171,19 +171,44 @@ function updateBotInput(room, bot, now) {
   bot.input.shoot = Boolean(bot.aimDirection);
   if (now < bot.nextThinkAt) return;
 
-  const toward = Math.abs(dx) > Math.abs(dy) ? horizontal : vertical;
-  const across = toward === horizontal ? vertical : horizontal;
-  const reverseToward = toward === 'left' ? 'right' : toward === 'right' ? 'left' : toward === 'up' ? 'down' : 'up';
-  const reverseAcross = across === 'left' ? 'right' : across === 'right' ? 'left' : across === 'up' ? 'down' : 'up';
-  const alternatives = bot.botIndex % 2 ? [toward, across, reverseAcross, reverseToward] : [toward, across, reverseToward, reverseAcross];
+  const start = { x: Math.floor((bot.x + 12) / TILE), y: Math.floor((bot.y + 12) / TILE) };
+  const goal = { x: Math.floor((target.x + 12) / TILE), y: Math.floor((target.y + 12) / TILE) };
+  const directions = [
+    { name: 'up', x: 0, y: -1 }, { name: 'right', x: 1, y: 0 },
+    { name: 'down', x: 0, y: 1 }, { name: 'left', x: -1, y: 0 }
+  ];
+  const key = cell => `${cell.x}:${cell.y}`;
+  const queue = [start], previous = new Map([[key(start), null]]);
+  let reached = key(start) === key(goal) ? start : null;
+  for (let cursor = 0; cursor < queue.length && !reached; cursor++) {
+    const cell = queue[cursor];
+    for (const direction of directions) {
+      const next = { x: cell.x + direction.x, y: cell.y + direction.y };
+      const nextKey = key(next);
+      if (next.x < 0 || next.y < 0 || next.y >= room.map.length || next.x >= room.map[0].length || previous.has(nextKey)) continue;
+      if (solidAt(room, next.x * TILE + 4, next.y * TILE + 4)) continue;
+      previous.set(nextKey, { cell, direction });
+      if (nextKey === key(goal)) { reached = next; break; }
+      queue.push(next);
+    }
+  }
+
+  let routeDirection = null;
+  if (reached && key(reached) !== key(start)) {
+    let step = reached;
+    while (key(previous.get(key(step)).cell) !== key(start)) step = previous.get(key(step)).cell;
+    routeDirection = previous.get(key(step)).direction.name;
+  }
   bot.input.up = bot.input.down = bot.input.left = bot.input.right = false;
   const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-  const move = alternatives.find(direction => {
+  const toward = Math.abs(dx) > Math.abs(dy) ? horizontal : vertical;
+  const alternatives = routeDirection ? [routeDirection, toward, 'up', 'right', 'down', 'left'] : [toward, 'up', 'right', 'down', 'left'];
+  const move = [...new Set(alternatives)].find(direction => {
     const [vx, vy] = vectors[direction];
     return canOccupy(room, bot, bot.x + vx * 18, bot.y + vy * 18);
   });
   if (move) bot.input[move] = true;
-  bot.nextThinkAt = now + 420 + bot.botIndex * 90;
+  bot.nextThinkAt = now + 600 + bot.botIndex * 100;
 }
 function shoot(room, p, now) {
   if (!p.input.shoot || now < p.fireAt || p.lives <= 0) return;

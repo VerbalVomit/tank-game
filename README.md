@@ -1,6 +1,6 @@
 # TANK GAME — multiplayer tank arena
 
-A small browser tank battle for 2–4 players. The server owns movement, bullets, collisions, lives, kills, pause state, and the three-minute timer. The client renders the arena with HTML elements and CSS; there is no Canvas, WebGL, game engine, database, or account system.
+A browser tank battle for solo play against three CPU pilots or online matches with 2–4 people. The server owns movement, bullets, collisions, lives, kills, pause state, and the three-minute timer. The client renders the arena with HTML elements and CSS; there is no Canvas, WebGL, game engine, database, or account system.
 
 ## Run locally
 
@@ -11,13 +11,14 @@ npm install
 npm start
 ```
 
-Open <http://localhost:3000> in two or more browser windows. One player creates a room; other players enter the room code. The host and every other player must be ready before the host can start. For a second computer on the same network, open the host computer's LAN address on port 3000.
+Open <http://localhost:3000>. Choose **Play solo** to start immediately against three CPU pilots, or create/join a room for multiplayer. In multiplayer, the host starts once at least two players are ready. For a second computer on the same network, open the host computer's LAN address on port 3000.
 
 Run the automated local acceptance suite with `npm test`. It starts an isolated server and checks four-player rooms, duplicate names, ready gating, movement and tank collisions, brick damage, score integrity, hits and respawns, pause timer behavior, quitting, disconnects, host room reset, and rematch timer reset. Three winner-selection tests check the kill/lives tie-break rules.
 
 ## Controls and rules
 
 - **WASD** or **arrow keys** move; **Space** fires; **Escape** opens the shared pause menu.
+- Select **Play solo** to fight three CPU-controlled tanks without another person.
 - Tanks move in four directions, collide with other tanks and solid walls, and cannot leave the arena.
 - Orange brick walls are destroyed by a hit. Grey steel walls stop bullets. Green bushes are decorative.
 - Each pilot has three lives. A hit removes one life; pilots with lives left respawn after a short delay with temporary invulnerability.
@@ -51,7 +52,7 @@ The HTML screen structure is created once. When a match starts, the client creat
 
 ### Multiplayer and game rules
 
-Socket.IO serves the page and carries events over the same public origin. The client sends held-key state, not positions or scores. A fixed server tick validates movement against the walls and tanks, advances bullets, destroys bricks, applies hits, and checks the match end conditions. Every client receives the same authoritative snapshot. Room state is held in server memory, so a server restart ends active rooms; there are no accounts or persistent matches.
+Socket.IO serves the page and carries events over the same public origin. The client sends held-key state, not positions or scores. A fixed server tick validates movement against the walls and tanks, advances bullets, destroys bricks, applies hits, and checks the match end conditions. Every client receives the same authoritative snapshot. In solo mode, the server chooses movement and firing inputs for three CPU pilots. Room state is held in server memory, so a server restart ends active rooms; there are no accounts or persistent matches.
 
 ### Collision detection
 
@@ -83,6 +84,6 @@ The implementation follows the assignment's DOM-only and beginner-friendly const
 
 ## Verification record
 
-**Verified locally:** `npm test` passes the four-player networking flow and winner-selection checks. The run covers nickname uniqueness, full rooms, ready gating, server authority, map dimensions, wall and tank collisions, brick destruction, hits and respawns, paused timer behavior, quit/disconnect results, removal of departed players, and rematch timer reset. A live 180-second server timer run ended with a two-way tie. A separate two-client check compared 73 consecutive timer snapshots; both clients received identical remaining-time values in each snapshot. Two browser tabs on this computer confirmed room join/readiness, match start, both tanks visible, movement reflected in the other tab, Escape menu, and synchronized pause/resume. The sound toggle's accessible label was checked in the browser. The optional FPS counter showed 60 FPS in one local sample on this machine; this does not prove sustained 60 FPS. The source check confirms DOM rendering, `requestAnimationFrame()`, and CSS transforms with no Canvas element.
+**Verified locally:** `npm test` passes the four-player networking flow and winner-selection checks. The run covers nickname uniqueness, full rooms, ready gating, server authority, map dimensions, wall and tank collisions, brick destruction, hits and respawns, paused timer behavior, quit/disconnect results, removal of departed players, and rematch timer reset. A live 180-second server timer run ended with a two-way tie. A separate two-client check compared 73 consecutive timer snapshots; both clients received identical remaining-time values in each snapshot. Two browser tabs on this computer confirmed room join/readiness, match start, both tanks visible, movement reflected in the other tab, Escape menu, and synchronized pause/resume. A solo smoke check started one player with three CPU pilots; the match timer and lives/kills updated from server snapshots. The sound toggle's accessible label was checked in the browser. The optional FPS counter showed 60 FPS in one local sample on this machine; this does not prove sustained 60 FPS. The source check confirms DOM rendering, `requestAnimationFrame()`, and CSS transforms with no Canvas element.
 
 **Still to verify:** join and play from two separate computers over the public internet; confirm audible Web Audio effects and mute behavior; record a Chrome DevTools Performance trace with long-task/frame-drop review; and have an independent QC pass capture the required screenshots. No public deployment has been created, and 60 FPS is a target rather than a guarantee.

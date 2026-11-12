@@ -56,29 +56,35 @@ const roomCode = () => {
 const alivePlayers = room => [...room.players.values()].filter(p => p.lives > 0 && !p.left);
 const publicPlayers = room => [...room.players.values()].map(p => ({
   id: p.id, name: p.name, color: p.color, ready: p.ready, host: p.id === room.hostId,
+  isBot: Boolean(p.isBot),
   x: p.x, y: p.y, dir: p.dir, lives: p.lives, kills: p.kills,
   eliminated: p.lives <= 0 || p.left, invulnerable: p.invulnerableUntil > Date.now(), respawning: Boolean(p.respawnAt)
 }));
 function lobbyState(room) {
-  return { code: room.code, hostId: room.hostId, phase: room.phase, players: publicPlayers(room), remainingMs: room.remainingMs, paused: room.paused };
+  return { code: room.code, hostId: room.hostId, phase: room.phase, solo: room.solo, players: publicPlayers(room), remainingMs: room.remainingMs, paused: room.paused };
 }
 function emitRoom(room, event, data) { io.to(room.code).emit(event, data); }
 function broadcastLobby(room) { emitRoom(room, 'room:update', lobbyState(room)); }
 function notice(room, message, type = 'info') { emitRoom(room, 'notice', { message, type, at: Date.now() }); }
 
-function createRoom(socket, name) {
+function createRoom(socket, name, solo = false) {
   const code = roomCode();
   const room = {
     code, hostId: socket.id, phase: 'lobby', players: new Map(), map: makeMap(), bullets: [],
-    remainingMs: ROUND_MS, paused: false, lastTick: Date.now(), tickId: null
+    remainingMs: ROUND_MS, paused: false, lastTick: Date.now(), tickId: null, solo
   };
   rooms.set(code, room);
-  addPlayer(socket, room, name);
+  addPlayer(socket, room, name, !solo);
+  if (solo) {
+    for (let i = 1; i <= 3; i++) addBot(room, i);
+    socket.emit('room:joined', lobbyState(room));
+  }
   return room;
 }
-function addPlayer(socket, room, name) {
+function addPlayer(socket, room, name, announce = true) {
   const p = {
     id: socket.id, name, color: COLORS.find(color => ![...room.players.values()].some(existing => existing.color === color)) || COLORS[0], ready: room.players.size === 0,
+    isBot: false,
     x: 0, y: 0, dir: 'up', lives: 3, kills: 0, left: false,
     input: { up: false, down: false, left: false, right: false, shoot: false },
     invulnerableUntil: 0, fireAt: 0, respawnAt: 0
@@ -86,8 +92,18 @@ function addPlayer(socket, room, name) {
   room.players.set(socket.id, p);
   socket.join(room.code);
   sockets.set(socket.id, room.code);
-  socket.emit('room:joined', lobbyState(room));
-  broadcastLobby(room);
+  if (announce) {
+    socket.emit('room:joined', lobbyState(room));
+    broadcastLobby(room);
+  }
+}
+function addBot(room, index) {
+  room.players.set(`cpu-${room.code}-${index}`, {
+    id: `cpu-${room.code}-${index}`, name: `CPU ${index}`, color: COLORS[index], ready: true, isBot: true, botIndex: index,
+    x: 0, y: 0, dir: 'up', lives: 3, kills: 0, left: false,
+    input: { up: false, down: false, left: false, right: false, shoot: false },
+    invulnerableUntil: 0, fireAt: 0, respawnAt: 0, nextThinkAt: 0, aimDirection: null
+  });
 }
 function score(room) {
   return [...room.players.values()].map(p => ({ id: p.id, name: p.name, color: p.color, kills: p.kills, lives: p.lives, eliminated: p.lives <= 0 || p.left }));
@@ -135,9 +151,43 @@ function movePlayer(room, p, dt) {
     }
   }
 }
+function updateBotInput(room, bot, now) {
+  const targets = alivePlayers(room).filter(player => !player.isBot && !player.respawnAt);
+  if (!targets.length) {
+    bot.input = { up: false, down: false, left: false, right: false, shoot: false };
+    bot.aimDirection = null;
+    return;
+  }
+  const target = targets.reduce((nearest, player) => {
+    const distance = (player.x - bot.x) ** 2 + (player.y - bot.y) ** 2;
+    return !nearest || distance < nearest.distance ? { player, distance } : nearest;
+  }, null).player;
+  const dx = target.x - bot.x, dy = target.y - bot.y;
+  const horizontal = dx < 0 ? 'left' : 'right';
+  const vertical = dy < 0 ? 'up' : 'down';
+  const sameRow = Math.abs(dy) < 30;
+  const sameColumn = Math.abs(dx) < 30;
+  bot.aimDirection = sameRow ? horizontal : sameColumn ? vertical : null;
+  bot.input.shoot = Boolean(bot.aimDirection);
+  if (now < bot.nextThinkAt) return;
+
+  const toward = Math.abs(dx) > Math.abs(dy) ? horizontal : vertical;
+  const across = toward === horizontal ? vertical : horizontal;
+  const reverseToward = toward === 'left' ? 'right' : toward === 'right' ? 'left' : toward === 'up' ? 'down' : 'up';
+  const reverseAcross = across === 'left' ? 'right' : across === 'right' ? 'left' : across === 'up' ? 'down' : 'up';
+  const alternatives = bot.botIndex % 2 ? [toward, across, reverseAcross, reverseToward] : [toward, across, reverseToward, reverseAcross];
+  bot.input.up = bot.input.down = bot.input.left = bot.input.right = false;
+  const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const move = alternatives.find(direction => {
+    const [vx, vy] = vectors[direction];
+    return canOccupy(room, bot, bot.x + vx * 18, bot.y + vy * 18);
+  });
+  if (move) bot.input[move] = true;
+  bot.nextThinkAt = now + 420 + bot.botIndex * 90;
+}
 function shoot(room, p, now) {
   if (!p.input.shoot || now < p.fireAt || p.lives <= 0) return;
-  p.fireAt = now + FIRE_MS;
+  p.fireAt = now + (p.isBot ? 1400 + p.botIndex * 250 : FIRE_MS);
   const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const [dx, dy] = vectors[p.dir];
   room.bullets.push({ id: `${p.id}-${now}-${Math.random()}`, ownerId: p.id, x: p.x + 12 + dx * 13, y: p.y + 12 + dy * 13, dx, dy });
@@ -185,7 +235,7 @@ function resetForMatch(room) {
     p.invulnerableUntil = Date.now() + 1500; p.respawnAt = 0;
   });
   room.phase = 'game';
-  emitRoom(room, 'game:start', { map: room.map, players: publicPlayers(room), remainingMs: room.remainingMs, tile: TILE });
+  emitRoom(room, 'game:start', { map: room.map, players: publicPlayers(room), remainingMs: room.remainingMs, tile: TILE, solo: room.solo });
   room.tickId = setInterval(() => tick(room), TICK_MS);
 }
 function tick(room) {
@@ -195,6 +245,7 @@ function tick(room) {
   room.lastTick = now;
   room.remainingMs -= now - (room._timerTick || now); room._timerTick = now;
   for (const p of alivePlayers(room)) {
+    if (p.isBot) updateBotInput(room, p, now);
     if (p.respawnAt && now >= p.respawnAt) {
       const spawnIndex = [...room.players.values()].indexOf(p);
       const choices = SPAWNS.map((_, i) => SPAWNS[(spawnIndex + i) % SPAWNS.length]);
@@ -202,12 +253,16 @@ function tick(room) {
       if (!spawn) { p.respawnAt = now + 250; continue; }
       p.x = spawn.x; p.y = spawn.y; p.respawnAt = 0; p.invulnerableUntil = now + 1500;
     }
-    movePlayer(room, p, dt); shoot(room, p, now);
+    if (p.respawnAt) continue;
+    movePlayer(room, p, dt);
+    if (p.isBot && p.aimDirection) p.dir = p.aimDirection;
+    shoot(room, p, now);
   }
   updateBullets(room, dt, now);
   const snapshot = { players: publicPlayers(room), bullets: room.bullets.map(({ id, ...b }) => b), remainingMs: Math.max(0, room.remainingMs), paused: room.paused };
   emitRoom(room, 'game:state', snapshot);
-  if (alivePlayers(room).length <= 1) endRound(room, 'last-player');
+  if (room.solo && !alivePlayers(room).some(player => !player.isBot)) endRound(room, 'solo-defeat');
+  else if (alivePlayers(room).length <= 1) endRound(room, 'last-player');
   else if (room.remainingMs <= 0) endRound(room, 'time');
 }
 function removePlayer(socketId, action = 'disconnected') {
@@ -246,6 +301,13 @@ io.on('connection', socket => {
     const name = cleanName(payload?.name);
     if (!validName(name)) return socket.emit('error:message', 'Use a nickname with at least 2 characters.');
     createRoom(socket, name);
+  });
+  socket.on('solo:start', payload => {
+    if (sockets.has(socket.id)) return socket.emit('error:message', 'You are already in a room.');
+    const name = cleanName(payload?.name);
+    if (!validName(name)) return socket.emit('error:message', 'Use a nickname with at least 2 characters.');
+    const room = createRoom(socket, name, true);
+    resetForMatch(room);
   });
   socket.on('room:join', payload => {
     if (sockets.has(socket.id)) return socket.emit('error:message', 'You are already in a room.');
@@ -291,10 +353,16 @@ io.on('connection', socket => {
     if (room.tickId) clearInterval(room.tickId);
     room.tickId = null; room.phase = 'lobby'; room.paused = false; room.bullets = []; room.map = makeMap();
     for (const [id, p] of room.players) {
-      if (p.left || sockets.get(id) !== room.code) { room.players.delete(id); continue; }
+      if (p.isBot || p.left || sockets.get(id) !== room.code) { room.players.delete(id); continue; }
       p.ready = p.id === room.hostId; p.left = false; p.lives = 3; p.kills = 0;
     }
+    room.solo = false;
     emitRoom(room, 'room:returned', lobbyState(room)); broadcastLobby(room);
+  });
+  socket.on('solo:restart', () => {
+    const room = rooms.get(sockets.get(socket.id));
+    if (!room || !room.solo || room.phase !== 'over' || room.hostId !== socket.id) return;
+    resetForMatch(room);
   });
   socket.on('disconnect', () => removePlayer(socket.id, 'disconnected'));
 });

@@ -1,4 +1,4 @@
-# Battle City team plan
+# TANK GAME team plan
 
 The work is split among three students and delivered in small phases. Each phase has one clear owner, a short handoff, and a check before it reaches `main`. Keep `main` runnable throughout the project.
 

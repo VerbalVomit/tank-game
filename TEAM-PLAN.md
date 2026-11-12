@@ -21,22 +21,25 @@ package.json and package-lock.json are shared setup files. Matis coordinates cha
 5. Matis reviews the change and checks the handoff. Merge it only when the phase check passes. The next phase starts from updated main.
 6. If a check fails, fix it on that same branch before merging. Do not stack new phases on top of a broken main.
 
-Only the owner of a file edits it during a phase. When a feature needs both server and browser work, Tanel first agrees and documents the event contract; Alex then integrates against it. Matis checks the result without silently changing another student's files.
+Only the owner of a file edits it during a phase. When a feature needs both server and browser work, Tanel first agrees and documents the event contract; Alex then integrates against it. Matis checks the result without silently changing another student's files. The person implementing a fix does not edit that fix's acceptance test. Matis owns the acceptance checks and asks another student to confirm visible behavior.
 
 ## Phases and handoffs
 
 | Phase | Owner(s) | Piece to upload | Done when |
 |---|---|---|---|
-| **0. Baseline and plan** | Matis | This phase plan, agreed file ownership, and checklist of existing behavior. | Everyone can install and run the project; npm test passes; current main is the known-good starting point. |
-| **1. Screens and arena shell** | Alex | Main menu, lobby, gameplay, and game-over page structure plus responsive visual shell in public/index.html and public/style.css. | All four screens open; labels are readable; no Canvas or game engine is introduced. |
+| **0. Baseline and plan** | Matis | This plan, agreed file ownership, and checklist of existing behavior. | Everyone can install and run the project; npm test passes; current main is the known-good starting point. |
+| **1. Screens and arena shell** | Alex | Main menu, lobby, gameplay, and game-over structure plus responsive visual shell in public/index.html and public/style.css. | All four screens open; labels are readable; no Canvas or game engine is introduced. |
 | **2. DOM arena and local controls** | Alex | Map and tank DOM rendering, keyboard input, and one requestAnimationFrame loop in public/game.js. | A local tank moves smoothly; DOM nodes are reused; walls and boundaries display; no Canvas is used. |
 | **3. Server and room foundation** | Tanel | Express/Socket.IO setup, health route, room creation/joining, unique names, lobby state, readiness, and host start rules in server.js. | Server starts on the configured port; two browser clients can join one room; duplicate names and full rooms are rejected. |
-| **4. Lobby connection** | Tanel, then Alex | Tanel publishes lobby event names and payload examples; Alex connects the screens, room code, player list, ready button, and host start control. | Two clients see the same lobby; only the host can start when at least two players are ready. |
+| **4. Lobby connection** | Tanel, then Alex | Tanel publishes lobby event names and payload examples; Alex connects screens, room code, player list, ready button, and host start. | Two clients see the same lobby; only the host can start when at least two players are ready. |
 | **5. Multiplayer movement** | Tanel, then Alex | Tanel validates held-key input and sends authoritative snapshots; Alex sends input and interpolates snapshots. | Two browser windows see both tanks move together; the client cannot submit its own position or score. |
-| **6. Combat and scoring** | Tanel, then Alex; Matis reviews | Tanel adds bullets, collisions, brick damage, lives, respawns, eliminations, and server-owned scores; Alex adds visible bullets, effects, and scoreboard updates. | Shooting, walls, damage, respawns, and scores agree in both clients; npm test passes. |
-| **7. Match flow** | Tanel, then Alex; Matis reviews | Tanel adds synchronized timer, winner rules, pause/resume, quit, disconnect, and rematch state; Alex adds timer, menu, notifications, and game-over UI. | Both clients see the same timer and match state; pause stops simulation; quit/disconnect and rematch work; npm test passes. |
-| **8. Sound and performance pass** | Alex; Matis checks | Web Audio effects, mute control, optional FPS indicator, and focused rendering improvements. | Sound starts after interaction and mute works; browser check confirms DOM-only rendering and no duplicate animation loops. Record FPS evidence without claiming a guaranteed 60 FPS. |
-| **9. Internet demo preparation** | Matis coordinates; Alex and Tanel fix assigned issues | Deployment instructions and final fixes in their owned files. | After review, two students on separate internet connections join and play; README evidence and remaining limits are recorded. |
+| **6A. Bullets and walls** | Tanel, then Alex | Tanel adds bullet movement, wall/tank collision, brick damage, and steel blocking; Alex adds visible bullets and wall updates. | Bullets stop at boundaries and steel; bricks disappear after hits; both clients see the same map. |
+| **6B. Lives and scoring** | Tanel, then Alex; Matis reviews | Tanel adds hits, lives, respawns, eliminations, invulnerability, and server-owned scores; Alex updates tank effects and scoreboard. | Hits, respawns, and scores agree in both clients; npm test passes. |
+| **7A. Timer and winner** | Tanel, then Alex; Matis reviews | Tanel adds synchronized timer and winner/tie rules; Alex adds timer and game-over screen. | Both clients see same countdown and winner; npm test passes. |
+| **7B. Pause, quit, and rematch** | Tanel, then Alex; Matis reviews | Tanel adds shared pause/resume, quit, disconnect, and rematch state; Alex adds menu actions and status notifications. | Pause stops simulation for everyone; quit/disconnect and rematch work; npm test passes. |
+| **8A. Sound controls** | Alex; Matis checks | Web Audio effects and mute control. | Sound starts after user interaction and mute works in a browser check. |
+| **8B. Performance review** | Alex; Matis checks | Optional FPS indicator and focused rendering improvements. | Browser check confirms DOM-only rendering and no duplicate animation loops. Record FPS evidence without claiming guaranteed 60 FPS. |
+| **9. Internet demo preparation** | Matis coordinates; Alex and Tanel fix assigned issues | Deployment instructions and final fixes in their owned files. | After release review, two students on separate internet connections join and play; README evidence and remaining limits are recorded. |
 
 ## Keep phases small
 

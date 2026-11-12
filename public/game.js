@@ -1,4 +1,5 @@
 (() => {
+  // The browser sends input and draws server snapshots; it never decides positions or scores.
   const socket = io();
   const $ = selector => document.querySelector(selector);
   const screens = { home: $('#home-screen'), lobby: $('#lobby-screen'), game: $('#game-screen'), over: $('#over-screen') };
@@ -15,6 +16,7 @@
   };
   if (state.debugFps) elements.fps.classList.remove('hidden');
 
+  // Switch between the four existing screens without replacing their HTML.
   function showScreen(name) {
     Object.values(screens).forEach(screen => screen.classList.remove('active'));
     screens[name].classList.add('active'); state.phase = name;
@@ -26,6 +28,7 @@
     clearTimeout(state.toastTimer); state.toastTimer = setTimeout(() => elements.toast.classList.remove('show'), 2500);
   }
   function connectAction(eventName) {
+    // All entry buttons share the same nickname validation and send their action to the server.
     showError('');
     const name = elements.nickname.value.trim();
     if (name.length < 2) { showError('Enter a callsign with at least 2 characters.'); elements.nickname.focus(); return; }
@@ -37,6 +40,7 @@
   elements.roomCode.addEventListener('input', () => { elements.roomCode.value = elements.roomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
   elements.nickname.addEventListener('keydown', event => { if (event.key === 'Enter') connectAction('room:create'); });
 
+  // Socket events keep the lobby and match view in sync with the server's current state.
   let connectedOnce = false;
   socket.on('connect', () => {
     elements.connection.textContent = 'Online'; elements.connection.previousElementSibling.classList.add('online');
@@ -63,6 +67,7 @@
   });
 
   function renderLobby(room) {
+    // Rebuild the small roster when room state changes; the host can start only when ready.
     elements.lobbyCode.textContent = room.code;
     $('#game-room-code').textContent = room.code;
     elements.rosterCount.textContent = `${room.players.length} / 4`;
@@ -97,6 +102,7 @@
   if (roomFromUrl) elements.roomCode.value = roomFromUrl.toUpperCase().slice(0, 4);
 
   function makeTile(tile) {
+    // Each map tile gets one DOM node. The render loop moves tanks, not the whole battlefield.
     const node = document.createElement('div');
     node.className = `tile ${tile.kind === 'b' ? 'brick' : tile.kind === 's' ? 'steel' : 'bush'}`;
     node.style.transform = `translate3d(${tile.x * 100}%, ${tile.y * 100}%, 0)`;
@@ -108,6 +114,7 @@
     map.forEach(row => row.forEach(tile => { if (tile) makeTile(tile); }));
   }
   function makeTank(player) {
+    // Tank art is assembled from ordinary HTML elements styled in style.css (no Canvas or sprites).
     const node = document.createElement('div'); node.className = 'tank'; node.dataset.id = player.id; node.style.setProperty('--tank', player.color);
     const leftTrack = document.createElement('i'); leftTrack.className = 'tank-track left';
     const rightTrack = document.createElement('i'); rightTrack.className = 'tank-track right';
@@ -126,6 +133,7 @@
     for (const [id, node] of state.tanks) if (!players.some(player => player.id === id)) { node.remove(); state.tanks.delete(id); }
   }
   function buildGame(payload) {
+    // Create the arena nodes once when a new match starts, then reuse them for later snapshots.
     state.snapshots.length = 0; state.bullets.forEach(b => b.node.remove()); state.bullets = [];
     state.tanks.forEach(node => node.remove()); state.tanks.clear();
     state.scoreSignature = '';
@@ -146,6 +154,7 @@
   socket.on('notice', ({ message }) => toast(message));
   socket.on('sound', ({ type }) => beep(type));
 
+  // The scoreboard changes only when a player's name, score, lives, color, or status changes.
   function renderScore(players) {
     const signature = players.map(p => `${p.id}:${p.name}:${p.color}:${p.kills}:${p.lives}:${p.eliminated}`).join('|');
     if (signature === state.scoreSignature) return;
@@ -167,6 +176,7 @@
     if (text !== state.lastTimerText) { elements.timer.textContent = text; state.lastTimerText = text; }
   }
   function renderBullets(list) {
+    // Reuse bullet nodes where possible; hide extras instead of creating DOM on every frame.
     while (state.bullets.length < list.length) {
       const node = document.createElement('i'); node.className = 'bullet'; arena.append(node); state.bullets.push({ node, data: null });
     }
@@ -177,10 +187,12 @@
     });
   }
   function positionNode(node, x, y, width, height) {
+    // Convert the server's 640-by-480 logical coordinates to the arena's current screen size.
     const scaleX = arena.clientWidth / width, scaleY = arena.clientHeight / height;
     node.style.transform = `translate3d(${x * scaleX}px, ${y * scaleY}px, 0)`;
   }
   function frame(now) {
+    // One animation loop interpolates recent server snapshots and updates CSS transforms.
     state.raf = requestAnimationFrame(frame);
     if (state.phase !== 'game') return;
     const snapshot = interpolate(now);
@@ -199,6 +211,7 @@
     if (rectW === 0 || rectH === 0) return;
   }
   function interpolate(now) {
+    // Draw about 90ms behind live time so two server snapshots can be blended smoothly.
     const list = state.snapshots; if (!list.length) return null;
     if (list.length === 1) return list[0].data;
     const target = now - 90;
@@ -217,9 +230,11 @@
   let fpsFrames = 0, fpsStart = 0;
   function updateFps(now) { if (!fpsStart) fpsStart = now; fpsFrames++; if (now - fpsStart >= 1000) { elements.fps.textContent = `FPS ${Math.round(fpsFrames * 1000 / (now - fpsStart))}`; fpsStart = now; fpsFrames = 0; } }
   function makeExplosion(x, y) {
+    // The wrapper keeps the hit location fixed while its inner CSS effect scales outward.
     const node = document.createElement('i'); node.className = 'explosion'; arena.append(node); positionNode(node, x, y, 640, 480); setTimeout(() => node.remove(), 450);
   }
 
+  // Keyboard state is held between keydown/keyup events and sent as input, not as coordinates.
   function focusedInput() { const tag = document.activeElement?.tagName; return tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable; }
   const keyMap = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right', Space: 'shoot' };
   window.addEventListener('keydown', event => {
@@ -232,6 +247,7 @@
   window.addEventListener('blur', clearKeys);
   document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); });
   function clearKeys() {
+    // Clear held keys when focus changes so a missed keyup cannot leave a tank moving.
     Object.keys(state.keys).forEach(key => state.keys[key] = false);
     if (socket.connected) socket.emit('game:input', state.keys);
   }
@@ -243,6 +259,7 @@
   $('#return-lobby').addEventListener('click', () => socket.emit(state.room?.solo ? 'solo:restart' : 'game:return-lobby'));
 
   function showGameOver(result) {
+    // The server supplies the winner and final scores; this function only formats the result screen.
     state.snapshots.length = 0; clearKeys(); setMenu(false); beep(result.winners.some(w => w.id === socket.id) ? 'win' : 'loss');
     if (!result.winners.length) elements.winnerLine.textContent = 'No winner this round';
     else if (result.winners.length > 1) elements.winnerLine.textContent = `Tied winners: ${result.winners.map(w => w.name).join(' · ')}`;
@@ -263,6 +280,7 @@
     showScreen('over');
   }
 
+  // Web Audio is created after user interaction to satisfy browser autoplay restrictions.
   const soundButton = $('#sound-toggle');
   soundButton.addEventListener('click', () => {
     state.muted = !state.muted;

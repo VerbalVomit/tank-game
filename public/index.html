@@ -16,6 +16,7 @@
       <div class="masthead-right"><span class="signal-dot"></span><span id="connection-label">Connecting</span><button class="sound-button" id="sound-toggle" type="button" aria-label="Mute sound" title="Toggle sound">♫ <span>Sound on</span></button></div>
     </header>
 
+    <!-- Home screen: choose solo play, create a multiplayer room, or join with a room code. -->
     <section class="screen active" id="home-screen" aria-labelledby="home-title">
       <div class="hero-copy"><p class="eyebrow">ARCADE FIELD MANUAL · 01</p><h1 id="home-title">Hold the line.<br><em>Outlast them all.</em></h1><p class="intro">Battle online with a crew or take on three CPU pilots by yourself.</p>
         <div class="control-strip"><span><kbd>W A S D</kbd> Move</span><span><kbd>SPACE</kbd> Fire</span><span><kbd>ESC</kbd> Menu</span></div>
@@ -31,6 +32,7 @@
       </div>
     </section>
 
+    <!-- Lobby: show the roster and let the host start when enough human players are ready. -->
     <section class="screen" id="lobby-screen" aria-labelledby="lobby-title">
       <div class="lobby-heading"><div><p class="eyebrow">CREW ASSEMBLY</p><h1 id="lobby-title">The staging area</h1></div><div class="room-badge"><span>ROOM CODE</span><strong id="lobby-code">----</strong><button id="copy-link" type="button" title="Copy invite link">Copy invite</button></div></div>
       <div class="lobby-layout"><div class="roster-panel"><div class="panel-topline"><span>ROSTER</span><span id="roster-count">0 / 4</span></div><div id="lobby-players" class="player-list"></div><p class="lobby-hint" id="lobby-hint">Waiting for another pilot to join.</p></div>
@@ -39,6 +41,7 @@
       <button class="text-button" id="leave-room" type="button">← Leave room</button>
     </section>
 
+    <!-- Match screen: DOM arena, server-driven score/timer, and shared pause controls. -->
     <section class="screen game-screen" id="game-screen" aria-label="Battlefield">
       <div class="game-top"><div class="game-title"><span class="brand-mark">▣</span><span>FIELD <b id="game-room-code">----</b></span></div><div class="timer-wrap"><span>TIME REMAINING</span><strong id="timer">03:00</strong></div><button class="menu-button" id="menu-open" type="button"><span>Ⅱ</span> MENU <kbd>ESC</kbd></button></div>
       <div class="play-layout"><aside class="score-panel"><div class="panel-topline"><span>LIVE SCORE</span><span>◉</span></div><div id="score-list"></div><div class="score-key"><span class="life-icon">▰▰▰</span> lives <span>·</span> kills <b>×</b></div><div class="arena-note"><span class="signal-dot"></span> MATCH LIVE</div></aside>
@@ -48,6 +51,7 @@
       <div class="menu-overlay hidden" id="menu-overlay"><div class="menu-card"><button id="menu-close" class="close-button" type="button" aria-label="Close menu">×</button><p class="eyebrow">FIELD MENU</p><h2>Regroup.</h2><p id="menu-status">All pilots share the pause.</p><button class="primary-button" id="pause-toggle" type="button">Pause game <span>Ⅱ</span></button><button class="quit-button" id="quit-game" type="button">Quit match <span>↗</span></button></div></div>
     </section>
 
+    <!-- Result screen: display the server's winner and final score list. -->
     <section class="screen gameover-screen" id="over-screen" aria-labelledby="over-title"><p class="eyebrow">ROUND REPORT</p><h1 id="over-title">Match complete</h1><p class="winner-line" id="winner-line"></p><div class="final-board" id="final-board"></div><button class="primary-button" id="return-lobby" type="button">Return to lobby <span>↗</span></button><p class="host-note" id="return-note"></p></section>
   </main>
 </body>

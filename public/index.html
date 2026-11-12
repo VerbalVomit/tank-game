@@ -17,18 +17,19 @@
     </header>
 
     <section class="screen active" id="home-screen" aria-labelledby="home-title">
-      <div class="hero-copy"><p class="eyebrow">ARCADE FIELD MANUAL · 01</p><h1 id="home-title">Hold the line.<br><em>Outlast them all.</em></h1><p class="intro">A four-player tank skirmish. Find a crew, take cover, and make every shot count.</p>
+      <div class="hero-copy"><p class="eyebrow">ARCADE FIELD MANUAL · 01</p><h1 id="home-title">Hold the line.<br><em>Outlast them all.</em></h1><p class="intro">Battle online with a crew or take on three CPU pilots by yourself.</p>
         <div class="control-strip"><span><kbd>W A S D</kbd> Move</span><span><kbd>SPACE</kbd> Fire</span><span><kbd>ESC</kbd> Menu</span></div>
       </div>
       <div class="entry-panel">
         <div class="panel-topline"><span>FIELD ENTRY</span><span class="serial">TG / 90</span></div>
         <label for="nickname">Pilot callsign</label><input id="nickname" maxlength="16" autocomplete="nickname" placeholder="e.g. IronFox">
         <button class="primary-button" id="create-room" type="button"><span>Create a room</span><span aria-hidden="true">↗</span></button>
+        <button class="solo-button" id="solo-game" type="button"><span>Play solo</span><span>3 CPU pilots ↗</span></button>
         <div class="divider"><span>OR JOIN A CREW</span></div>
         <label for="room-code">Room code</label><div class="join-row"><input id="room-code" maxlength="4" placeholder="ABCD" autocapitalize="characters"><button class="join-button" id="join-room" type="button">Join ↗</button></div>
         <p class="form-error" id="home-error" role="status"></p>
       </div>
-      <div class="home-footer"><span>20 × 15 TILE ARENA</span><span>2—4 PILOTS</span><span>THREE LIVES EACH</span></div>
+      <div class="home-footer"><span>20 × 15 TILE ARENA</span><span>SOLO OR 2—4 PILOTS</span><span>THREE LIVES EACH</span></div>
     </section>
 
     <section class="screen" id="lobby-screen" aria-labelledby="lobby-title">

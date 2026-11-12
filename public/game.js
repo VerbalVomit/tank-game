@@ -32,6 +32,7 @@
     socket.emit(eventName, { name, code: elements.roomCode.value });
   }
   $('#create-room').addEventListener('click', () => connectAction('room:create'));
+  $('#solo-game').addEventListener('click', () => connectAction('solo:start'));
   $('#join-room').addEventListener('click', () => connectAction('room:join'));
   elements.roomCode.addEventListener('input', () => { elements.roomCode.value = elements.roomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
   elements.nickname.addEventListener('keydown', event => { if (event.key === 'Enter') connectAction('room:create'); });
@@ -70,7 +71,7 @@
       const row = document.createElement('div'); row.className = 'player-row';
       const swatch = document.createElement('span'); swatch.className = 'player-swatch'; swatch.style.color = player.color || colors[index];
       const name = document.createElement('span'); name.className = 'player-name'; name.textContent = player.name + (player.id === socket.id ? ' (you)' : '');
-      const meta = document.createElement('span'); meta.className = 'player-meta'; meta.textContent = player.host ? 'HOST' : 'PILOT';
+      const meta = document.createElement('span'); meta.className = 'player-meta'; meta.textContent = player.isBot ? 'CPU' : player.host ? 'HOST' : 'PILOT';
       const ready = document.createElement('span'); ready.className = `ready-tag ${player.ready ? '' : 'wait'}`; ready.textContent = player.ready ? 'READY' : 'WAITING';
       row.append(swatch, name, meta, ready); elements.lobbyPlayers.append(row);
     });
@@ -239,7 +240,7 @@
   $('#pause-toggle').addEventListener('click', () => socket.emit('game:pause'));
   $('#pause-resume').addEventListener('click', () => socket.emit('game:pause'));
   $('#quit-game').addEventListener('click', () => { socket.emit('game:quit'); setMenu(false); state.room = null; clearKeys(); showScreen('home'); toast('You left the match.'); });
-  $('#return-lobby').addEventListener('click', () => socket.emit('game:return-lobby'));
+  $('#return-lobby').addEventListener('click', () => socket.emit(state.room?.solo ? 'solo:restart' : 'game:return-lobby'));
 
   function showGameOver(result) {
     state.snapshots.length = 0; clearKeys(); setMenu(false); beep(result.winners.some(w => w.id === socket.id) ? 'win' : 'loss');
@@ -257,7 +258,8 @@
     });
     const me = state.room?.players.find(p => p.id === socket.id); const host = me?.host;
     $('#return-lobby').classList.toggle('hidden', !host);
-    elements.returnNote.textContent = host ? 'The host can reset the room for another round.' : 'Waiting for the host to return everyone to the lobby.';
+    $('#return-lobby').textContent = state.room?.solo ? 'Play solo again ↗' : 'Return to lobby ↗';
+    elements.returnNote.textContent = !host ? 'Waiting for the host to return everyone to the lobby.' : state.room?.solo ? 'Run it back against three CPU pilots.' : 'The host can reset the room for another round.';
     showScreen('over');
   }
 

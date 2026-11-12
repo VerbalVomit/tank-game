@@ -65,7 +65,7 @@ Short tones are synthesized with the Web Audio API after a player interacts with
 
 The project includes a [Render Blueprint](render.yaml) for one Frankfurt Node web service. It uses the free plan, `npm ci`, `npm start`, and `/health` checks. Automatic deploys are off so a later commit cannot promote itself without a manual release decision. The server uses `process.env.PORT`, binds to `0.0.0.0`, and Socket.IO follows the browser's origin for HTTPS/WSS. Render supports WebSocket connections on web services; see [Render WebSockets](https://render.com/docs/websocket), [Blueprints](https://render.com/docs/blueprint-spec), and [free instance limits](https://render.com/docs/free).
 
-1. Put the contents of this folder in a private repository under the team's `matisvelt` GitHub account.
+1. The source is in the team's private GitHub repository, `VerbalVomit/tank-game`.
 2. In Render, choose **New → Blueprint** and select that repository. Render reads `render.yaml` and proposes the service settings above.
 3. Review the service plan and configuration, then create and deploy the Blueprint.
 4. Open the generated HTTPS URL; Socket.IO upgrades over WSS automatically. Create a room and share the URL or four-character room code.

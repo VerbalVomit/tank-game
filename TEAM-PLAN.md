@@ -1,5 +1,7 @@
 # TANK GAME team plan
 
+Upload files for Gitea are grouped by student in [Alex’s browser pieces](alex/) and [Tanel’s server pieces](tanel/). Each folder lists the copy destinations and matching steps.
+
 The work is split among three students and delivered in small phases. Each phase has one clear owner, a short handoff, and a check before it reaches `main`. Keep `main` runnable throughout the project.
 
 ## Who owns what
@@ -14,12 +16,10 @@ The work is split among three students and delivered in small phases. Each phase
 
 ## Safe upload and merge routine
 
-1. Start from the latest `main` and create a branch for one phase, for example `alex/phase-02-dom-arena` or `tanel/phase-03-rooms`.
-2. Work only on the files listed for that phase. Upload or commit complete files, not half-finished replacements. Keep each commit about one change.
-3. Run the phase check below. For changes to the server or game rules, also run `npm test` and fix failures before handoff.
-4. Open a pull request into `main` and include: what changed, files touched, checks run, and anything still incomplete. Do not upload unfinished work directly to `main`.
-5. Matis reviews the change and checks the handoff. Merge it only when the phase check passes. The next phase starts from the updated `main`.
-6. If work breaks a check, fix it on that same branch before merging. Do not stack new phases on top of a broken `main`.
+1. Keep one Gitea upload branch per student. Use the numbered folder guides above for the file destinations and upload order. The phases below describe integration milestones.
+2. Copy each piece’s complete files to their application paths. Commit and push one piece at a time on the student’s branch.
+3. Check each piece against the matching versions from the other branches. Run the full `npm test` suite once the complete game and acceptance tests are integrated.
+4. Use pull requests to integrate the branches into `main`. Include the changes, checks run, and any missing dependencies. Merge after the required checks and independent review pass on the commit being merged.
 
 Only the owner of a file edits it during a phase. When a feature needs both server and browser work, Tanel first agrees and documents the event contract; Alex then integrates against that contract. Matis checks the integrated result without silently changing another student's files.
 

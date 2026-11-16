@@ -1,0 +1,31 @@
+name: Student upload checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check upload snapshots and game
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript and final upload files
+        run: |
+          for file in alex/*/public/game.js tanel/*/server.js; do
+            node --check "$file" || exit 1
+          done
+          cmp alex/01-screens/public/style.css public/style.css
+          cmp alex/02-lobby/public/index.html public/index.html
+          cmp alex/05-solo-and-sound/public/game.js public/game.js
+          cmp tanel/04-solo/server.js server.js
+          cmp tanel/01-server-and-lobby/package.json package.json
+          cmp tanel/01-server-and-lobby/package-lock.json package-lock.json
+      - run: npm ci
+      - run: npm test
